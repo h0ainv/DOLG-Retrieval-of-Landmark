@@ -118,8 +118,8 @@ class DolgNet(LightningModule):
     def forward(self, x):
         output = self.cnn(x)
 
-        local_feat = self.local_branch(output[0])  # ,hidden_channel,16,16
-        global_feat = self.fc_1(self.gem_pool(output[1]).squeeze())  # ,1024
+        local_feat = self.local_branch(output[0])  
+        global_feat = self.fc_1(self.gem_pool(output[1]).squeeze())
 
         feat = self.orthogonal_fusion(local_feat, global_feat)
         feat = self.gap(feat).squeeze()
@@ -129,36 +129,40 @@ class DolgNet(LightningModule):
 
     def training_step(self, batch, batch_idx):
         img, label, _ = batch
+        optimizer = self.optimizers()
+        scheduler = self.lr_schedulers()
         embd = self(img)
         loss, logits = self.criterion(embd, label)
+        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        scheduler.step()  # Manually adjust the learning rate
         return loss
 
     def configure_optimizers(self):
-        optimizer = optim.SGD(self.parameters(), lr=self.lr,
-                              momentum=0.9, weight_decay=1e-5)
-        scheduler = scheduler = optim.lr_scheduler.CosineAnnealingLR(
-            optimizer, T_max=1000)
-        return [optimizer], [scheduler]
+        optimizer = optim.SGD(self.parameters(), lr=Config.lr, momentum=0.9, weight_decay=1e-5)
+        return optimizer
+
     def train_dataloader(self):
         dataset = LmkRetrDataset()
         return DataLoader(dataset, batch_size=Config.train_batch_size, num_workers=Config.num_workers,
                           shuffle=True, pin_memory=True, persistent_workers=True)
-    def predict(self,img,device):
+
+    def predict(self, img, device):
         embd = self(img.to(device))
-        if len(embd.shape)==1:
-          embd=torch.unsqueeze(embd,dim=0) 
-        mn=100 
-        ans=-1
+        if len(embd.shape) == 1:
+            embd = torch.unsqueeze(embd, dim=0)
+        mn = 100 
+        ans = -1
         for i in range(Config.num_of_classes):
-          loss, logits = self.criterion(embd,torch.from_numpy(numpy.array([i])).to(device))
-          if loss<mn:
-            mn=loss
-            ans=i+1
+            loss, logits = self.criterion(embd, torch.from_numpy(numpy.array([i])).to(device))
+            if loss < mn:
+                mn = loss
+                ans = i + 1
         return ans
         
-    def extract_feat(self,img,device):
-    
-        feat=self(img.to(device)).detach().cpu().numpy()
-        norm_feat = feat/LA.norm(feat)
-        
+    def extract_feat(self, img, device):
+        feat = self(img.to(device)).detach().cpu().numpy()
+        norm_feat = feat / LA.norm(feat)
         return norm_feat
