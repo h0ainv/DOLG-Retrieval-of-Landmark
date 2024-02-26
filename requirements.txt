@@ -25,7 +25,7 @@ imageio==2.19.2
 importlib-metadata==4.11.4
 joblib==1.1.0
 jpeg4py==0.1.4
-#keras @ file:///home/conda/feedstock_root/build_artifacts/keras_1652925255303/work/keras-2.9.0-py2.py3-none-any.whl
+keras==2.9.0
 Keras-Preprocessing==1.1.2
 libclang==14.0.1
 Markdown==3.3.7
