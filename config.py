@@ -3,7 +3,7 @@ import os
 
 class Config:
     DATA_DIR = '/kaggle/input/landmark-retrieval-2021'
-    CSV_PATH = os.path.join(DATA_DIR, 'train_clean.csv')
+    CSV_PATH = os.path.join(DATA_DIR, 'train.csv')
     train_batch_size = 10
     val_batch_size = 10
     num_workers = 8
